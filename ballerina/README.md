@@ -1,116 +1,71 @@
-# Ballerina Redis Short-Term Memory Store
-
 ## Overview
 
-This Ballerina module provides a Redis-backed short-term memory store for AI chat messages. It implements the `ai:ShortTermMemoryStore` interface, enabling AI agents and model providers to persist conversation history using Redis as the storage backend.
+This module provides a Redis-backed short-term memory store to use with AI messages (e.g., with AI agents, model providers, etc.).
 
-## Features
+### Key Features
 
-- **Redis-backed storage**: Persistent storage of chat messages using Redis data structures
-- **Configurable message limits**: Set the maximum number of interactive messages per session key (default: 20)
-- **In-memory caching**: Optional cache layer for improved read performance (default capacity: 20)
-- **Flexible initialization**: Use either a connection configuration or a pre-created Redis client
+- Redis-backed persistent storage for short-term AI message memory
+- Separate storage for system messages (`SET`/`GET`) and interactive messages (`RPUSH`/`LRANGE`)
+- Configurable maximum messages per key with automatic enforcement
+- Built-in in-memory caching for improved read performance
+- Configurable key prefix for multi-tenant or multi-application isolation
+- Support for both connection configuration and existing `redis:Client` reuse
 
 ## Prerequisites
 
-- [Ballerina Swan Lake](https://ballerina.io/downloads/)
-- A running Redis server (local or remote)
+- A running Redis server (local or cloud-hosted)
 
-## Getting Started
+## Quickstart
 
-### Configuration-based Setup
+Follow the steps below to use this store in your Ballerina application:
 
-```ballerina
-import ballerinax/ai.memory.redis;
-
-redis:ShortTermMemoryStore store = check new (
-    connection = {
-        host: "localhost",
-        port: 6379
-    }
-);
-```
-
-### Client-based Setup
+1. Import the `ballerinax/ai.memory.redis` module.
 
 ```ballerina
 import ballerinax/ai.memory.redis;
-import ballerinax/redis as redisClient;
-
-redisClient:Client cl = check new (
-    connection = {
-        host: "localhost",
-        port: 6379
-    }
-);
-
-redis:ShortTermMemoryStore store = check new (cl);
 ```
 
-## Customization
-
-### Message Capacity
+Optionally, import the `ballerina/ai` and/or `ballerinax/redis` module(s).
 
 ```ballerina
-redis:ShortTermMemoryStore store = check new (
-    connection = {host: "localhost", port: 6379},
-    maxMessagesPerKey = 50
-);
+import ballerina/ai;
+import ballerinax/redis;
 ```
 
-### Cache Configuration
+2. Create the short-term memory store by passing either the connection configuration or a `redis:Client`.
 
-```ballerina
-import ballerina/cache;
+    i. Using the connection configuration
 
-redis:ShortTermMemoryStore store = check new (
-    connection = {host: "localhost", port: 6379},
-    cacheConfig = {capacity: 30, evictionFactor: 0.2}
-);
-```
+    ```ballerina
+    import ballerina/ai;
+    import ballerinax/ai.memory.redis;
 
-### Key Prefix
+    configurable string host = ?;
+    configurable int port = ?;
 
-```ballerina
-redis:ShortTermMemoryStore store = check new (
-    connection = {host: "localhost", port: 6379},
-    keyPrefix = "my_app_memory"
-);
-```
+    ai:ShortTermMemoryStore store = check new redis:ShortTermMemoryStore({
+        host, port
+    });
+    ```
 
-## Building from Source
+    ii. Using an existing `redis:Client`
 
-### Prerequisites
+    ```ballerina
+    import ballerina/ai;
+    import ballerinax/redis;
+    import ballerinax/ai.memory.redis as redisStore;
 
-- JDK 21
-- [Ballerina Swan Lake](https://ballerina.io/downloads/)
-- Docker (for running tests)
+    configurable string host = ?;
+    configurable int port = ?;
 
-### Build
+    redis:Client redisClient = check new redis:Client(connection = {host, port});
+    ai:ShortTermMemoryStore store = check new redisStore:ShortTermMemoryStore(redisClient);
+    ```
 
-```bash
-bal build
-```
+    Optionally, specify the maximum number of messages per key (`maxMessagesPerKey` - defaults to `20`), the in-memory cache configuration (`cacheConfig`), and a custom key prefix (`keyPrefix` - defaults to `"chat_memory"`).
 
-### Run Tests
-
-Start a Redis server (e.g., using Docker):
-
-```bash
-docker run -d -p 6379:6379 --name redis-test redis:7-alpine
-```
-
-Then run:
-
-```bash
-bal test
-```
-
-## Community
-
-- [Discord](https://discord.gg/ballerinalang)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/ballerina) (tag: `ballerina`)
-
-## License
-
-This module is available under the [Apache 2.0 License](LICENSE).
+    ```ballerina
+    ai:ShortTermMemoryStore store = check new redis:ShortTermMemoryStore({
+        host, port
+    }, 10, {capacity: 10}, "my_app_memory");
+    ```

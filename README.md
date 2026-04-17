@@ -1,116 +1,155 @@
-# Ballerina Redis Short-Term Memory Store
+# Ballerina Redis-backed short-term chat message store connector
+
+[![Build](https://github.com/ballerina-platform/module-ballerinax-ai.memory.redis/actions/workflows/ci.yml/badge.svg)](https://github.com/ballerina-platform/module-ballerinax-ai.memory.redis/actions/workflows/ci.yml)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/ballerina-platform/module-ballerinax-ai.memory.redis.svg)](https://github.com/ballerina-platform/module-ballerinax-ai.memory.redis/commits/main)
+[![GitHub Issues](https://img.shields.io/github/issues/ballerina-platform/ballerina-library/module/ai.memory.redis.svg?label=Open%20Issues)](https://github.com/ballerina-platform/ballerina-library/labels/module%2Fai.memory.redis)
 
 ## Overview
 
-This Ballerina module provides a Redis-backed short-term memory store for AI chat messages. It implements the `ai:ShortTermMemoryStore` interface, enabling AI agents and model providers to persist conversation history using Redis as the storage backend.
-
-## Features
-
-- **Redis-backed storage**: Persistent storage of chat messages using Redis data structures
-- **Configurable message limits**: Set the maximum number of interactive messages per session key (default: 20)
-- **In-memory caching**: Optional cache layer for improved read performance (default capacity: 20)
-- **Flexible initialization**: Use either a connection configuration or a pre-created Redis client
+This module provides a Redis-backed short-term memory store to use with AI messages (e.g., with AI agents, model providers, etc.).
 
 ## Prerequisites
 
-- [Ballerina Swan Lake](https://ballerina.io/downloads/)
-- A running Redis server (local or remote)
+- A running Redis server (local or cloud-hosted)
 
-## Getting Started
+## Quickstart
 
-### Configuration-based Setup
+Follow the steps below to use this store in your Ballerina application:
 
-```ballerina
-import ballerinax/ai.memory.redis;
-
-redis:ShortTermMemoryStore store = check new (
-    connection = {
-        host: "localhost",
-        port: 6379
-    }
-);
-```
-
-### Client-based Setup
+1. Import the `ballerinax/ai.memory.redis` module.
 
 ```ballerina
 import ballerinax/ai.memory.redis;
-import ballerinax/redis as redisClient;
-
-redisClient:Client cl = check new (
-    connection = {
-        host: "localhost",
-        port: 6379
-    }
-);
-
-redis:ShortTermMemoryStore store = check new (cl);
 ```
 
-## Customization
-
-### Message Capacity
+Optionally, import the `ballerina/ai` and/or `ballerinax/redis` module(s).
 
 ```ballerina
-redis:ShortTermMemoryStore store = check new (
-    connection = {host: "localhost", port: 6379},
-    maxMessagesPerKey = 50
-);
+import ballerina/ai;
+import ballerinax/redis;
 ```
 
-### Cache Configuration
+2. Create the short-term memory store by passing either the connection configuration or a `redis:Client`.
 
-```ballerina
-import ballerina/cache;
+    i. Using the connection configuration
 
-redis:ShortTermMemoryStore store = check new (
-    connection = {host: "localhost", port: 6379},
-    cacheConfig = {capacity: 30, evictionFactor: 0.2}
-);
-```
+    ```ballerina
+    import ballerina/ai;
+    import ballerinax/ai.memory.redis;
 
-### Key Prefix
+    configurable string host = ?;
+    configurable int port = ?;
 
-```ballerina
-redis:ShortTermMemoryStore store = check new (
-    connection = {host: "localhost", port: 6379},
-    keyPrefix = "my_app_memory"
-);
-```
+    ai:ShortTermMemoryStore store = check new redis:ShortTermMemoryStore({
+        host, port
+    });
+    ```
 
-## Building from Source
+    ii. Using an existing `redis:Client`
 
-### Prerequisites
+    ```ballerina
+    import ballerina/ai;
+    import ballerinax/redis;
+    import ballerinax/ai.memory.redis as redisStore;
 
-- JDK 21
-- [Ballerina Swan Lake](https://ballerina.io/downloads/)
-- Docker (for running tests)
+    configurable string host = ?;
+    configurable int port = ?;
 
-### Build
+    redis:Client redisClient = check new redis:Client(connection = {host, port});
+    ai:ShortTermMemoryStore store = check new redisStore:ShortTermMemoryStore(redisClient);
+    ```
 
-```bash
-bal build
-```
+    Optionally, specify the maximum number of messages to store per key (`maxMessagesPerKey` - defaults to `20`), the configuration for the in-memory cache (`cacheConfig`), and a custom key prefix (`keyPrefix` - defaults to `"chat_memory"`).
 
-### Run Tests
+    ```ballerina
+    ai:ShortTermMemoryStore store = check new redis:ShortTermMemoryStore({
+        host, port
+    }, 10, {capacity: 10}, "my_app_memory");
+    ```
 
-Start a Redis server (e.g., using Docker):
+## Build from the source
 
-```bash
-docker run -d -p 6379:6379 --name redis-test redis:7-alpine
-```
+### Setting up the prerequisites
 
-Then run:
+1. Download and install Java SE Development Kit (JDK) version 21. You can download it from either of the following sources:
 
-```bash
-bal test
-```
+    * [Oracle JDK](https://www.oracle.com/java/technologies/downloads/)
+    * [OpenJDK](https://adoptium.net/)
 
-## Community
+   > **Note:** After installation, remember to set the `JAVA_HOME` environment variable to the directory where JDK was installed.
 
-- [Discord](https://discord.gg/ballerinalang)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/ballerina) (tag: `ballerina`)
+2. Download and install [Ballerina Swan Lake](https://ballerina.io/).
 
-## License
+3. Download and install [Docker](https://www.docker.com/get-started).
 
-This module is available under the [Apache 2.0 License](LICENSE).
+   > **Note**: Ensure that the Docker daemon is running before executing any tests.
+
+4. Export Github Personal access token with read package permissions as follows:
+
+    ```bash
+    export packageUser=<Username>
+    export packagePAT=<Personal access token>
+    ```
+
+### Build options
+
+Execute the commands below to build from the source.
+
+1. To build the package:
+
+   ```bash
+   ./gradlew clean build
+   ```
+
+2. To run the tests:
+
+   ```bash
+   ./gradlew clean test
+   ```
+
+3. To build without the tests:
+
+   ```bash
+   ./gradlew clean build -x test
+   ```
+
+4. To debug the package with a remote debugger:
+
+   ```bash
+   ./gradlew clean build -Pdebug=<port>
+   ```
+
+5. To debug with the Ballerina language:
+
+   ```bash
+   ./gradlew clean build -PbalJavaDebug=<port>
+   ```
+
+6. Publish the generated artifacts to the local Ballerina Central repository:
+
+    ```bash
+    ./gradlew clean build -PpublishToLocalCentral=true
+    ```
+
+7. Publish the generated artifacts to the Ballerina Central repository:
+
+   ```bash
+   ./gradlew clean build -PpublishToCentral=true
+   ```
+
+## Contribute to Ballerina
+
+As an open-source project, Ballerina welcomes contributions from the community.
+
+For more information, go to the [contribution guidelines](https://github.com/ballerina-platform/ballerina-lang/blob/master/CONTRIBUTING.md).
+
+## Code of conduct
+
+All the contributors are encouraged to read the [Ballerina Code of Conduct](https://ballerina.io/code-of-conduct).
+
+## Useful links
+
+* For more information go to the [`ai.memory.redis` package](https://central.ballerina.io/ballerinax/ai.memory.redis/latest).
+* For example demonstrations of the usage, go to [Ballerina By Examples](https://ballerina.io/learn/by-example/).
+* Chat live with us via our [Discord server](https://discord.gg/ballerinalang).
+* Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.
