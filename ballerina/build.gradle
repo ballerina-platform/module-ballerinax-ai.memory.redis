@@ -86,29 +86,29 @@ tasks.register('startRedisServer') {
             exec {
                 commandLine cmd + ["docker compose -f tests/resources/compose.yaml up -d"]
             }
-
-            def healthCheckPassed = false
-            int retries = 18
-            for (int i = 0; i < retries; i++) {
-                def healthOut = new ByteArrayOutputStream()
-                exec {
-                    commandLine cmd + ["docker compose -f tests/resources/compose.yaml exec redis redis-cli ping"]
-                    standardOutput = healthOut
-                    ignoreExitValue = true
-                }
-                if (healthOut.toString().trim().equals("PONG")) {
-                    healthCheckPassed = true
-                    break
-                }
-                sleep(5 * 1000)
-            }
-            if (!healthCheckPassed) {
-                throw new GradleException("The Redis container did not become healthy in time.")
-            }
-            println "The Redis container is healthy."
         } else {
             println "Expected Redis container is already running, not starting new containers."
         }
+
+        def healthCheckPassed = false
+        int retries = 18
+        for (int i = 0; i < retries; i++) {
+            def healthOut = new ByteArrayOutputStream()
+            exec {
+                commandLine cmd + ["docker compose -f tests/resources/compose.yaml exec redis redis-cli ping"]
+                standardOutput = healthOut
+                ignoreExitValue = true
+            }
+            if (healthOut.toString().trim().equals("PONG")) {
+                healthCheckPassed = true
+                break
+            }
+            sleep(5 * 1000)
+        }
+        if (!healthCheckPassed) {
+            throw new GradleException("The Redis container did not become healthy in time.")
+        }
+        println "The Redis container is healthy."
     }
 }
 

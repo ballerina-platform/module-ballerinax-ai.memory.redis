@@ -491,6 +491,7 @@ isolated function assertChatMessageEquals(ai:ChatMessage actual, ai:ChatMessage 
 
     if actual is ai:ChatAssistantMessage && expected is ai:ChatAssistantMessage {
         test:assertEquals(actual.role, expected.role);
+        test:assertEquals(actual.content, expected.content);
         test:assertEquals(actual.name, expected.name);
         test:assertEquals(actual.toolCalls, expected.toolCalls);
         return;
@@ -926,6 +927,7 @@ function testGetCapacityReturnsCustomValue() returns error? {
 function testCustomKeyPrefixStoresUnderCorrectRedisKey() returns error? {
     redis:Client cl = getClient();
     string customPrefix = "test_prefix";
+    _ = check cl->del([customPrefix + ":" + K1 + ":system", customPrefix + ":" + K1 + ":interactive"]);
     ShortTermMemoryStore store = check new (cl, keyPrefix = customPrefix);
 
     check store.put(K1, K1SM1);
@@ -945,6 +947,7 @@ function testTwoStoresWithDifferentPrefixesAreIsolated() returns error? {
     redis:Client cl = getClient();
     string prefixA = "prefix_a";
     string prefixB = "prefix_b";
+    _ = check cl->del([prefixA + ":" + K1 + ":interactive", prefixB + ":" + K1 + ":interactive"]);
     ShortTermMemoryStore storeA = check new (cl, keyPrefix = prefixA);
     ShortTermMemoryStore storeB = check new (cl, keyPrefix = prefixB);
 
