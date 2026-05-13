@@ -1,5 +1,5 @@
 [package]
-distribution = "2201.13.1"
+distribution = "2201.12.0"
 org = "ballerinax"
 name = "ai.memory.redis"
 version = "1.0.0"
@@ -12,8 +12,3 @@ icon="icon.png"
 [platform.java21]
 graalvmCompatible = true
 
-[[dependency]]
-org = "ballerinax"
-name = "redis"
-version = "3.2.2"
-repository = "local"
