@@ -1,5 +1,5 @@
 [package]
-distribution = "2201.13.1"
+distribution = "2201.12.0"
 org = "ballerinax"
 name = "ai.memory.redis"
 version = "1.0.0"
