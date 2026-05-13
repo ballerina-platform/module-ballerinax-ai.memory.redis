@@ -12,3 +12,8 @@ icon="icon.png"
 [platform.java21]
 graalvmCompatible = true
 
+[[dependency]]
+org = "ballerinax"
+name = "redis"
+version = "3.2.2"
+repository = "local"
