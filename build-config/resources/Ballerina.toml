@@ -5,7 +5,7 @@ name = "ai.memory.redis"
 version = "@toml.version@"
 license = ["Apache-2.0"]
 authors = ["Ballerina"]
-keywords = ["Type/Connector", "Vendor/Redis", "Area/AI & Machine Learning", "Area/Database"]
+keywords = ["Type/Connector", "Vendor/Redis", "Area/AI & Machine Learning", "Area/Database", "Type/Short Term Memory Store"]
 repository = "https://github.com/ballerina-platform/module-ballerinax-ai.memory.redis"
 icon="icon.png"
 
