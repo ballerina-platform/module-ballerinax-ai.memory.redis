@@ -397,6 +397,18 @@ dependencies = [
 
 [[package]]
 org = "ballerinax"
+name = "redis"
+version = "3.2.2"
+dependencies = [
+	{org = "ballerina", name = "crypto"},
+	{org = "ballerina", name = "jballerina.java"}
+]
+modules = [
+	{org = "ballerinax", packageName = "redis", moduleName = "redis"}
+]
+
+[[package]]
+org = "orgsd"
 name = "ai.memory.redis"
 version = "1.0.0"
 dependencies = [
@@ -406,18 +418,6 @@ dependencies = [
 	{org = "ballerinax", name = "redis"}
 ]
 modules = [
-	{org = "ballerinax", packageName = "ai.memory.redis", moduleName = "ai.memory.redis"}
-]
-
-[[package]]
-org = "ballerinax"
-name = "redis"
-version = "3.2.2"
-dependencies = [
-	{org = "ballerina", name = "crypto"},
-	{org = "ballerina", name = "jballerina.java"}
-]
-modules = [
-	{org = "ballerinax", packageName = "redis", moduleName = "redis"}
+	{org = "orgsd", packageName = "ai.memory.redis", moduleName = "ai.memory.redis"}
 ]
 
