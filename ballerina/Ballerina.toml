@@ -12,3 +12,8 @@ icon="icon.png"
 [platform.java21]
 graalvmCompatible = true
 
+[[dependency]]
+org = "ballerina"
+name = "ai"
+version = "1.13.0"
+repository = "local"
