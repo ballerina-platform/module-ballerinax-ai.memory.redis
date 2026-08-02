@@ -507,9 +507,10 @@ public isolated class ShortTermMemoryStore {
         }
     }
 
-    # Atomically fetches and removes the pending human-in-the-loop approval for a session, if
-    # any.
-    #
+    # Fetches and removes pending human-in-the-loop approval checkpoint for a session.
+    # Note: This operation is non-atomic (separate GET and DEL calls).
+    # Concurrent calls may both retrieve the same approval.
+    # 
     # + sessionId - The session to claim
     # + return - The claimed pending approval, nil if none was pending, or an `Error` if the operation fails
     public isolated function takeCheckpoint(string sessionId) returns ai:PendingApproval|Error? {
