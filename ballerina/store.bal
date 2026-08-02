@@ -105,7 +105,7 @@ public isolated class ShortTermMemoryStore {
         string|redis:Error? systemMessageJson = self.redisClient->get(self.systemKey(key));
 
         if systemMessageJson is () {
-            return ();
+            return;
         }
 
         if systemMessageJson is redis:Error {
@@ -443,12 +443,12 @@ public isolated class ShortTermMemoryStore {
         lock {
             cache:Cache? cache = self.cache;
             if cache is () || !cache.hasKey(key) {
-                return ();
+                return;
             }
 
             any|cache:Error cacheEntry = cache.get(key);
             if cacheEntry is cache:Error {
-                return ();
+                return;
             }
 
             // Since we have sole control over what is stored in the cache, this use of
@@ -483,7 +483,7 @@ public isolated class ShortTermMemoryStore {
     public isolated function getCheckpoint(string sessionId) returns ai:PendingApproval|Error? {
         string|redis:Error? approvalJson = self.redisClient->get(self.checkpointKey(sessionId));
         if approvalJson is () {
-            return ();
+            return;
         }
         if approvalJson is redis:Error {
             return error("Failed to retrieve pending approval: " + approvalJson.message(), approvalJson);
