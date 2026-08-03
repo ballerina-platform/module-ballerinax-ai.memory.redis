@@ -85,6 +85,10 @@ public isolated class ShortTermMemoryStore {
         return self.keyPrefix + ":" + key + ":interactive";
     }
 
+    private isolated function checkpointKey(string sessionId) returns string {
+        return self.keyPrefix + ":" + sessionId + ":checkpoint";
+    }
+
     # Retrieves the system message, if it was provided, for a given key.
     #
     # + key - The key associated with the memory
@@ -101,7 +105,7 @@ public isolated class ShortTermMemoryStore {
         string|redis:Error? systemMessageJson = self.redisClient->get(self.systemKey(key));
 
         if systemMessageJson is () {
-            return ();
+            return;
         }
 
         if systemMessageJson is redis:Error {
@@ -344,12 +348,15 @@ public isolated class ShortTermMemoryStore {
         }
     }
 
-    # Removes all stored chat messages for a given key.
+    # Removes all stored chat messages for a given key, including any pending human-in-the-loop
+    # approval checkpoint for that key, so clearing a session is atomic and an abandoned pause
+    # does not retain its whole history snapshot indefinitely.
     #
     # + key - The key associated with the memory
     # + return - nil on success, or an `Error` error if the operation fails
     public isolated function removeAll(string key) returns Error? {
-        int|redis:Error result = self.redisClient->del([self.systemKey(key), self.interactiveKey(key)]);
+        int|redis:Error result = self.redisClient->del(
+                [self.systemKey(key), self.interactiveKey(key), self.checkpointKey(key)]);
         if result is redis:Error {
             self.removeCacheEntry(key);
             return error("Failed to delete chat messages: " + result.message(), result);
@@ -436,12 +443,12 @@ public isolated class ShortTermMemoryStore {
         lock {
             cache:Cache? cache = self.cache;
             if cache is () || !cache.hasKey(key) {
-                return ();
+                return;
             }
 
             any|cache:Error cacheEntry = cache.get(key);
             if cacheEntry is cache:Error {
-                return ();
+                return;
             }
 
             // Since we have sole control over what is stored in the cache, this use of
@@ -455,6 +462,71 @@ public isolated class ShortTermMemoryStore {
     # + return - The configured capacity of the message store per key
     public isolated function getCapacity() returns int {
         return self.maxMessagesPerKey;
+    }
+
+    # Stores (or replaces) the pending human-in-the-loop approval for its session.
+    #
+    # + approval - The pending approval to persist
+    # + return - nil on success, or an `Error` if the operation fails
+    public isolated function putCheckpoint(ai:PendingApproval approval) returns Error? {
+        ApprovalDatabaseMessage dbMessage = toApprovalDatabaseMessage(approval);
+        string|redis:Error setResult = self.redisClient->set(self.checkpointKey(approval.sessionId), dbMessage.toJsonString());
+        if setResult is redis:Error {
+            return error("Failed to store pending approval: " + setResult.message(), setResult);
+        }
+    }
+
+    # Returns the pending human-in-the-loop approval for a session, if any.
+    #
+    # + sessionId - The session to look up
+    # + return - The pending approval, nil if none is pending, or an `Error` if the operation fails
+    public isolated function getCheckpoint(string sessionId) returns ai:PendingApproval|Error? {
+        string|redis:Error? approvalJson = self.redisClient->get(self.checkpointKey(sessionId));
+        if approvalJson is () {
+            return;
+        }
+        if approvalJson is redis:Error {
+            return error("Failed to retrieve pending approval: " + approvalJson.message(), approvalJson);
+        }
+
+        ApprovalDatabaseMessage|error dbMessage = approvalJson.fromJsonStringWithType();
+        if dbMessage is error {
+            return error("Failed to parse pending approval from Redis: " + dbMessage.message(), dbMessage);
+        }
+        return fromApprovalDatabaseMessage(dbMessage);
+    }
+
+    # Removes the pending human-in-the-loop approval for a session, if any.
+    #
+    # + sessionId - The session to clear
+    # + return - nil on success, or an `Error` if the operation fails
+    public isolated function removeCheckpoint(string sessionId) returns Error? {
+        int|redis:Error result = self.redisClient->del([self.checkpointKey(sessionId)]);
+        if result is redis:Error {
+            return error("Failed to remove pending approval: " + result.message(), result);
+        }
+    }
+
+    # Fetches and removes pending human-in-the-loop approval checkpoint for a session.
+    # Note: This operation is non-atomic (separate GET and DEL calls).
+    # Concurrent calls may both retrieve the same approval.
+    # 
+    # + sessionId - The session to claim
+    # + return - The claimed pending approval, nil if none was pending, or an `Error` if the operation fails
+    public isolated function takeCheckpoint(string sessionId) returns ai:PendingApproval|Error? {
+        // GET and DEL are two separate calls and not atomic. Atomic execution would require
+        // MULTI/EXEC or a Lua script (e.g. GETDEL), neither of which is currently exposed by
+        // the connector. A concurrent `putCheckpoint`/`takeCheckpoint` for the same session can
+        // race with this pair of calls.
+        ai:PendingApproval?|Error approval = self.getCheckpoint(sessionId);
+        if approval is Error || approval is () {
+            return approval;
+        }
+        Error? removeResult = self.removeCheckpoint(sessionId);
+        if removeResult is Error {
+            return removeResult;
+        }
+        return approval;
     }
 }
 
